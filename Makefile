@@ -1,27 +1,22 @@
-### Fujitsu Fortran Compiler ###
-FC = mpifrtpx
-FFLAGS = -Kfast,parallel # Optimization
-FFLAGS += -X9 # Fortran95
-FFLAGS += -CcdII8 # Change default integer type as integer(kind=8).
-FFLAGS += -Koptmsg=2 -Nlst=t # Optimization report
-FFLAGS += -fw # Suppress message
-FFLAGS += -Kopenmp #-Nfjomplib # OpenMP
-FFLAGS += -mcmodel=large # Static memory larger than 2GB
-#FFLAGS += -Haefosux -NRtrap #-O0 # Debug
-OPTRPT = 'lst'
-#FFLAGS += -Nfjprof # Fujitsu profiler fapp
-#FFLAGS += -Ksimd_nouse_multiple_structures # Specific option for compiler tcs1.2.26 to avoid slowing down GKV
-#FFLAGS += -Knosch_pre_ra # Specific option for compiler tcs1.2.26 to avoid slowing down GKV
-
-### Usage of FFTW (module load fftw-tune)
-#INC += -I$(FFTW_DIR)/include
-#LIB += -L$(FFTW_DIR)/lib -lfftw3 -lm
-LIB += -lfftw3 -lm
-### Usage of NetCDF (module load netcdf-fortran netcdf-c phdf5)
-### NetCDF does not work on the FLOW supercomputer for now, Jan 17 2021
-#INC += -I$(NETCDF_FORTRAN_DIR)/include -I$(NETCDF_DIR)/include -I$(PHDF5_DIR)/include
-#LIB += -L$(NETCDF_FORTRAN_DIR)/lib -L$(NETCDF_DIR)/lib -L$(PHDF5_DIR)/lib -lnetcdff -lnetcdf -lhdf5_hl -lhdf5 -Wl,-rpath-link /opt/FJSVxtclanga/tcsds-1.2.27/lib64/
-LIB += -lnetcdff -lnetcdf -lhdf5_hl -lhdf5
+### GNU Fortran compiler ###
+FC = gfortran
+FFLAGS = -mcmodel=medium -m64 -march=native -mtune=native -O3 -ffast-math # Optimization
+FFLAGS += -frecord-marker=4 # 4-byte header/footer
+FFLAGS += -fdefault-integer-8 # Change default integer type as integer(kind=8).
+#FFLAGS += -fopenmp # OpenMP
+#FFLAGS += -Wall -Wextra -pedantic -fbacktrace \
+#         -fbounds-check -Wuninitialized -ffpe-trap=invalid,zero,overflow # Debug
+### Usage of FFTW (spack load fftw)
+##FFTW_DIR=`spack location -i fftw`
+FFTW_DIR=/usr
+INC += -I$(FFTW_DIR)/include
+LIB += -L$(FFTW_DIR)/lib -lfftw3 -lm
+### Usage of NetCDF (spack load netcdf-fortran)
+##NETCDF_DIR=`spack location -i netcdf-fortran`
+NETCDF_DIR=/usr
+INC += -I$(NETCDF_DIR)/include
+##LIB += -L$(NETCDF_DIR)/lib -lnetcdff -lnetcdf -lhdf5_hl -lhdf5
+LIB += `nc-config --libs` `nc-config --flibs`
 
 
 ### Read Fortran binary GKV output
@@ -113,7 +108,7 @@ diag:	${SRC}/diag_header.f90\
 
 	${FC} ${FFLAGS} *.o -o ${PROG} ${LIB}
 
-	rm -f *.o *.mod *.${OPTRPT}
+	rm -f *.o *.mod
 
 clean:
-	rm -f *.o *.mod *.${OPTRPT} *.exe *.out *.err *.stats go.diag_*.out.*
+	rm -f *.o *.mod *.exe go.diag*.o* go.diag*.i*
