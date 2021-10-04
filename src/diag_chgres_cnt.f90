@@ -6,7 +6,7 @@ MODULE diag_chgres_cnt
 !
 !-------------------------------------------------------------------------------
   use diag_header
-  use diag_rb, only : rb_cnt_mxmyimisloop
+  use diag_rb, only : rb_cnt_gettime, rb_cnt_mxmyimisloop
   use netcdf
   use out_netcdf, only : check_nf90err
   implicit none
@@ -133,8 +133,9 @@ CONTAINS
     character(len=*), optional, intent(in) :: outdir
 
     integer :: n_nx, n_gy, n_gz, n_gv, n_gm, n_npw, n_npz, n_npv, n_npm, n_nps
-    integer :: ips, ipm, ipv, ipz, ipw, ir, iunit
-    complex(kind=DP), dimension(:,:,:), allocatable :: off, nff
+    integer :: n_ny, n_nz, n_nv, n_nm, ips, ipm, ipv, ipz, ipw, ir, iunit
+    complex(kind=DP), dimension(:,:,:,:,:), allocatable :: nff
+    complex(kind=DP) :: ff(-nx:nx, 0:global_ny, -global_nz:global_nz-1)
 
     ! check stpnum
     if (stpnum < snum .or. stpnum > enum) then
@@ -154,12 +155,13 @@ CONTAINS
     n_npm = merge(nnpm, npm, present(nnpm))
     n_nps = merge(nnps, nps, present(nnps))
     call check_params(n_nx,n_gy,n_gz,n_gv,n_gm, n_npw,n_npz,n_npv,n_npm,n_nps)
+    n_ny = n_gy / n_npw
+    n_nz = n_gz / n_npz
+    n_nz = n_gv / n_npv
+    n_nm = n_gm / n_npm
 
-    ! allocate work for org cnt
-    allocate( off(-nx:nx, 0:gy, -gz:gz-1) )
-
-    ! allocate work for new cnt
-    allocate( nff(-n_nx:n_nx, 0:n_gy, -n_gz:n_gz-1) )
+     ! allocate work for new cnt
+    allocate( nff(-n_nx:n_nx, 0:n_ny, -n_nz:n_nz-1, 1:2*n_nv, 0:n_nm) )
 
     ! open fortran files
     call open_fortran(stpnum, n_npw, n_npz, n_npv, n_npm, n_nps, outdir)
@@ -173,4 +175,6 @@ CONTAINS
                    ir = ipw + n_npw*ipz + n_npw*n_npz*ipv  &
                         + n_npw*n_npz*n_npv*ipm + n_npw*n_npz*n_npv*n_npm*ips
                    iunit = cntfos + stpfos*stpnum + ir
+
+                   ! fill in nff
                    
