@@ -60,7 +60,8 @@ CONTAINS
        write(*,*) "chgres_cnt: invalid ngv or nnpv has specified."
        stop
     end if
-    if ( real(ngm+1)/real(nnpm) /= real((ngm+1)/nnpm) ) then
+    if ( real(ngm+1)/real(nnpm) /= real((ngm+1)/nnpm) .or. &
+         (ngm+1)/nnpm -1 < 1 ) then
        write(*,*) "chgres_cnt: invalid ngm or nnpm has specified."
        stop
     end if
@@ -87,7 +88,7 @@ CONTAINS
                    ir = rankw + nnpw*rankz + nnpw*nnpz*rankv &
                         + nnpw*nnpz*nnpv*rankm + nnpw*nnpz*nnpv*nnpm*ranks
                    write( crank, fmt="(i6.6)" ) ir
-                   open( unit=cntfos+stpfos*inum+ir,                         &
+                   open( unit=cntfos+stpfos*inum+ir,                       &
                         file=trim(outdir)//"/gkvp."//crank//".cnt."//cnum, &
                         status="new", action="write",                      &
                         form="unformatted", access="stream" )
@@ -133,8 +134,11 @@ CONTAINS
     character(len=*), optional, intent(in) :: outdir
 
     integer :: n_nx, n_gy, n_gz, n_gv, n_gm, n_npw, n_npz, n_npv, n_npm, n_nps
-    integer :: n_ny, n_nz, n_nv, n_nm, ips, ipm, ipv, ipz, ipw, ir, iunit
+    integer :: n_ny, n_nz, n_nv, n_nm
+    integer :: ips, ipm, ipv, ipz, ipw
+    ! buffer for write to file
     complex(kind=DP), dimension(:,:,:,:,:), allocatable :: nff
+    ! buffer for rb_cnt_ivimisloop
     complex(kind=DP) :: ff(-nx:nx, 0:global_ny, -global_nz:global_nz-1)
 
     ! check stpnum
@@ -158,9 +162,9 @@ CONTAINS
     n_ny = n_gy / n_npw
     n_nz = n_gz / n_npz
     n_nz = n_gv / n_npv
-    n_nm = n_gm / n_npm
+    n_nm = (n_gm + 1) / n_npm - 1
 
-     ! allocate work for new cnt
+    ! allocate work for new cnt
     allocate( nff(-n_nx:n_nx, 0:n_ny, -n_nz:n_nz-1, 1:2*n_nv, 0:n_nm) )
 
     ! open fortran files
@@ -172,9 +176,5 @@ CONTAINS
           do ipv = 0, n_npv-1
              do ipz = 0, n_npz-1
                 do ipw = 0, n_npw-1
-                   ir = ipw + n_npw*ipz + n_npw*n_npz*ipv  &
-                        + n_npw*n_npz*n_npv*ipm + n_npw*n_npz*n_npv*n_npm*ips
-                   iunit = cntfos + stpfos*stpnum + ir
-
                    ! fill in nff
                    
