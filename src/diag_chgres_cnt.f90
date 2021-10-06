@@ -1,10 +1,10 @@
-MODULE diag_chgres_cnt
 !-------------------------------------------------------------------------------
 !
 !    diag_chgres_cnt: change the resolution and process division number for cnt
 !                                                   (FUJITSU LTD, November 2021)
 !
 !-------------------------------------------------------------------------------
+MODULE diag_chgres_cnt
   use diag_header
   use diag_rb, only : rb_cnt_gettime, rb_cnt_mxmyimisloop
   use netcdf
@@ -16,8 +16,12 @@ MODULE diag_chgres_cnt
 
   public  chgres_cnt_fortran, chgres_cnt_netcdf
 
+    
 CONTAINS
 
+  !-------------------------------------------------------------------------
+  ! renew_dir: renewal output directory
+  !-------------------------------------------------------------------------
   SUBROUTINE renew_dir( dir )
     character(len=*), intent(in) :: dir
     character(len=512) :: comm
@@ -40,6 +44,9 @@ CONTAINS
     return
   end SUBROUTINE renew_dir
 
+  !-------------------------------------------------------------------------
+  ! check_params: check parameters
+  !-------------------------------------------------------------------------
   SUBROUTINE check_params(nnx, ngy, ngz, ngv, ngm, nnpw, nnpz, nnpv, nnpm, nnps)
     integer, intent(in) :: nnx, ngy, ngz, ngv, ngm, nnpw, nnpz, nnpv, nnpm, nnps
 
@@ -68,6 +75,9 @@ CONTAINS
     return
   end SUBROUTINE check_params
 
+  !-------------------------------------------------------------------------
+  ! open_fortran: open files for chgres_cnt_fortran
+  !-------------------------------------------------------------------------
   SUBROUTINE open_fortran( stpnum, nnpw, nnpz, nnpv, nnpm, nnps, outdir )
     integer, intent(in) :: stpnum, nnpw, nnpz, nnpv, nnpm, nnps
     character(len=*), intent(in) :: outdir
@@ -99,6 +109,9 @@ CONTAINS
     end do
   END SUBROUTINE open_fortran
 
+  !-------------------------------------------------------------------------
+  ! close_fortran: close files for chgres_cnt_fortran
+  !-------------------------------------------------------------------------
   SUBROUTINE close_fortran( stpnum, nnpw, nnpz, nnpv, nnpm, nnps )
     integer, intent(in) :: stpnum, nnpw, nnpz, nnpv, nnpm, nnps
     integer :: inum, ranks, rankm, rankv, rankz, rankw, ir
@@ -120,8 +133,6 @@ CONTAINS
   END SUBROUTINE close_fortran
     
 
-  SUBROUTINE chgres_cnt_fortran( stpnum, nnx, ngy, ngz, ngv, ngm, &
-       nnpw, nnpz, nnpv, nnpm, nnps, outdir )
 !-------------------------------------------------------------------------------
 !
 !    change the resolution and process division number for cnt
@@ -129,19 +140,24 @@ CONTAINS
 !                                                   (FUJITSU LTD, November 2021)
 !
 !-------------------------------------------------------------------------------
-    integer, optional, intent(in) :: stpnum, nnx, ngy, ngz, ngv, ngm, &
+  SUBROUTINE chgres_cnt_fortran( stpn, nnx, ngy, ngz, ngv, ngm, &
+       nnpw, nnpz, nnpv, nnpm, nnps, outdir )
+    integer, optional, intent(in) :: stpn, nnx, ngy, ngz, ngv, ngm, &
          nnpw, nnpz, nnpv, nnpm, nnps
     character(len=*), optional, intent(in) :: outdir
 
     integer :: n_nx, n_gy, n_gz, n_gv, n_gm, n_npw, n_npz, n_npv, n_npm, n_nps
     integer :: n_ny, n_nz, n_nv, n_nm
-    integer :: ips, ipm, ipv, ipz, ipw
+    integer :: stpnum, ips, ipm, ipv, ipz, ipw
     ! buffer for write to file
     complex(kind=DP), dimension(:,:,:,:,:), allocatable :: nff
     ! buffer for rb_cnt_ivimisloop
     complex(kind=DP) :: ff(-nx:nx, 0:global_ny, -global_nz:global_nz-1)
+    character(len=*), parameter :: default_odir = "./chgres_cnt"
+    character(len=512) :: odir
 
     ! check stpnum
+    stpnum = merge(stpn, enum, present(stpn))
     if (stpnum < snum .or. stpnum > enum) then
        write(*,*) "chgres_cnt_fortran: invalid stpnum specified(out of range)"
        stop
@@ -164,11 +180,16 @@ CONTAINS
     n_nz = n_gv / n_npv
     n_nm = (n_gm + 1) / n_npm - 1
 
+    ! open fortran files
+    if ( present(outdir) ) then
+       odir = outdir
+    else
+       odir = default_odir
+    end if
+    call open_fortran(stpnum, n_npw, n_npz, n_npv, n_npm, n_nps, odir)
+
     ! allocate work for new cnt
     allocate( nff(-n_nx:n_nx, 0:n_ny, -n_nz:n_nz-1, 1:2*n_nv, 0:n_nm) )
-
-    ! open fortran files
-    call open_fortran(stpnum, n_npw, n_npz, n_npv, n_npm, n_nps, outdir)
 
     ! main loop (in new process division)
     do ips = 0, n_nps-1
