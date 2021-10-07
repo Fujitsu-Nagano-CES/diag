@@ -1,0 +1,7 @@
+# Extension
+*.[oaxs]
+*.class
+*.mod
+*.so
+*.log
+a.out
