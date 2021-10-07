@@ -1,10 +1,10 @@
-MODULE diag_interp
 !-------------------------------------------------------------------------------
 !
 !    diag_interp: interpolation complex 5d array
 !                                                   (FUJITSU LTD, November 2021)
 !
 !-------------------------------------------------------------------------------
+MODULE diag_interp
   use diag_header, only: DP
   implicit none
   private
