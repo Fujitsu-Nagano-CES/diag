@@ -11,7 +11,7 @@ MODULE diag_chgres_cnt
   use out_netcdf, only : check_nf90err
   implicit none
 
-  private renew_dir, check_params, open_fortran, close_fortran
+  private renew_dir, check_params, open_fortfiles, close_fortfiles
   integer, parameter :: cntfos = 900000000, stpfos = 100000
 
   public  chgres_cnt_fortran, chgres_cnt_netcdf
@@ -76,9 +76,9 @@ CONTAINS
   end SUBROUTINE check_params
 
   !-------------------------------------------------------------------------
-  ! open_fortran: open files for chgres_cnt_fortran
+  ! open_fortfiles: open files for chgres_cnt_fortran
   !-------------------------------------------------------------------------
-  SUBROUTINE open_fortran( stpnum, nnpw, nnpz, nnpv, nnpm, nnps, outdir )
+  SUBROUTINE open_fortfiles( stpnum, nnpw, nnpz, nnpv, nnpm, nnps, outdir )
     integer, intent(in) :: stpnum, nnpw, nnpz, nnpv, nnpm, nnps
     character(len=*), intent(in) :: outdir
     character :: crank(6), cnum(3)
@@ -107,12 +107,12 @@ CONTAINS
           end do
        end do
     end do
-  END SUBROUTINE open_fortran
+  END SUBROUTINE open_fortfiles
 
   !-------------------------------------------------------------------------
-  ! close_fortran: close files for chgres_cnt_fortran
+  ! close_fortfiles: close files for chgres_cnt_fortran
   !-------------------------------------------------------------------------
-  SUBROUTINE close_fortran( stpnum, nnpw, nnpz, nnpv, nnpm, nnps )
+  SUBROUTINE close_fortfiles( stpnum, nnpw, nnpz, nnpv, nnpm, nnps )
     integer, intent(in) :: stpnum, nnpw, nnpz, nnpv, nnpm, nnps
     integer :: inum, ranks, rankm, rankv, rankz, rankw, ir
 
@@ -130,7 +130,7 @@ CONTAINS
           end do
        end do
     end do
-  END SUBROUTINE close_fortran
+  END SUBROUTINE close_fortfiles
     
 
 !-------------------------------------------------------------------------------
@@ -186,7 +186,7 @@ CONTAINS
     else
        odir = default_odir
     end if
-    call open_fortran(stpnum, n_npw, n_npz, n_npv, n_npm, n_nps, odir)
+    call open_fortfiles(stpnum, n_npw, n_npz, n_npv, n_npm, n_nps, odir)
 
     ! allocate work for new cnt
     allocate( nff(-n_nx:n_nx, 0:n_ny, -n_nz:n_nz-1, 1:2*n_nv, 0:n_nm) )
