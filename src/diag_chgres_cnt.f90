@@ -6,13 +6,14 @@
 !-------------------------------------------------------------------------------
 MODULE diag_chgres_cnt
   use diag_header
-  use diag_rb, only : rb_cnt_gettime, rb_cnt_mxmyimisloop
+  use diag_rb, only : rb_cnt_gettime, rb_cnt_ivimisloop, &
+       loop_cnt_sta, loop_cnt_end
   use netcdf
   use out_netcdf, only : check_nf90err
   implicit none
 
   private renew_dir, check_params, open_fortfiles, close_fortfiles
-  integer, parameter :: cntfos = 900000000, stpfos = 100000
+  integer, parameter :: cntfos = 900000000
 
   public  chgres_cnt_fortran, chgres_cnt_netcdf
 
@@ -49,13 +50,15 @@ CONTAINS
   !-------------------------------------------------------------------------
   SUBROUTINE check_params(nnx, ngy, ngz, ngv, ngm, nnpw, nnpz, nnpv, nnpm, nnps)
     integer, intent(in) :: nnx, ngy, ngz, ngv, ngm, nnpw, nnpz, nnpv, nnpm, nnps
+    integer :: wny
 
     if ( nnx < 1 .or. ngy < 1 .or. ngz < 1 .or. ngv < 1 .or. ngm < 1 .or. &
          nnpw < 1 .or. nnpz < 1 .or. nnpv < 1 .or. nnpm < 1 .or. nnps < 1 ) then
        write(*,*) "chgres_cnt: negative or zero value has specified."
        stop
     end if
-    if ( real(ngy)/real(nnpw) /= real(ngy/nnpw) ) then
+    wny = ngy / nnpw
+    if ( wny < 1 .or. ((wny+1)*nnpw - ngy -1)/(wny+1) > 1 ) then
        write(*,*) "chgres_cnt: invalid ngy or nnpw has specified."
        stop
     end if
@@ -75,63 +78,6 @@ CONTAINS
     return
   end SUBROUTINE check_params
 
-  !-------------------------------------------------------------------------
-  ! open_fortfiles: open files for chgres_cnt_fortran
-  !-------------------------------------------------------------------------
-  SUBROUTINE open_fortfiles( stpnum, nnpw, nnpz, nnpv, nnpm, nnps, outdir )
-    integer, intent(in) :: stpnum, nnpw, nnpz, nnpv, nnpm, nnps
-    character(len=*), intent(in) :: outdir
-    character :: crank(6), cnum(3)
-    integer :: inum, ranks, rankm, rankv, rankz, rankw, ir
-
-    ! renew 'outdir'
-    call renew_dir( outdir )
-
-    ! open files
-    inum = stpnum
-    write( cnum, fmt="(i3.3)" ) inum
-    do ranks = 0, nnpcs-1
-       do rankm = 0, nnpm-1
-          do rankv = 0, nnpv-1
-             do rankz = 0, nnpz-1
-                do rankw = 0, nnpw-1
-                   ir = rankw + nnpw*rankz + nnpw*nnpz*rankv &
-                        + nnpw*nnpz*nnpv*rankm + nnpw*nnpz*nnpv*nnpm*ranks
-                   write( crank, fmt="(i6.6)" ) ir
-                   open( unit=cntfos+stpfos*inum+ir,                       &
-                        file=trim(outdir)//"/gkvp."//crank//".cnt."//cnum, &
-                        status="new", action="write",                      &
-                        form="unformatted", access="stream" )
-                end do
-             end do
-          end do
-       end do
-    end do
-  END SUBROUTINE open_fortfiles
-
-  !-------------------------------------------------------------------------
-  ! close_fortfiles: close files for chgres_cnt_fortran
-  !-------------------------------------------------------------------------
-  SUBROUTINE close_fortfiles( stpnum, nnpw, nnpz, nnpv, nnpm, nnps )
-    integer, intent(in) :: stpnum, nnpw, nnpz, nnpv, nnpm, nnps
-    integer :: inum, ranks, rankm, rankv, rankz, rankw, ir
-
-    inum = stpnum
-    do ranks = 0, nnps-1
-       do rankm = 0, nnpm-1
-          do rankv = 0, nnpv-1
-             do rankz = 0, nnpz-1
-                do rankw = 0, nnpw-1
-                   ir = rankw + nnpw*rankz + nnpw*nnpz*rankv  &
-                        + nnpw*nnpz*nnpv*rankm + nnpw*nnpz*nnpv*nnpm*ranks
-                   close( unit=cntfos+stpfos*inum+ir )
-                end do
-             end do
-          end do
-       end do
-    end do
-  END SUBROUTINE close_fortfiles
-    
 
 !-------------------------------------------------------------------------------
 !
@@ -149,6 +95,8 @@ CONTAINS
     integer :: n_nx, n_gy, n_gz, n_gv, n_gm, n_npw, n_npz, n_npv, n_npm, n_nps
     integer :: n_ny, n_nz, n_nv, n_nm
     integer :: stpnum, ips, ipm, ipv, ipz, ipw
+    integer :: igx, igy, igz, igv, igm, loop
+    real(kind=DP) :: time
     ! buffer for write to file
     complex(kind=DP), dimension(:,:,:,:,:), allocatable :: nff
     ! buffer for rb_cnt_ivimisloop
@@ -180,22 +128,26 @@ CONTAINS
     n_nz = n_gv / n_npv
     n_nm = (n_gm + 1) / n_npm - 1
 
-    ! open fortran files
+    ! prepare directory for fortran files
     if ( present(outdir) ) then
        odir = outdir
     else
        odir = default_odir
     end if
-    call open_fortfiles(stpnum, n_npw, n_npz, n_npv, n_npm, n_nps, odir)
+    call renew_dir( odir )
 
     ! allocate work for new cnt
     allocate( nff(-n_nx:n_nx, 0:n_ny, -n_nz:n_nz-1, 1:2*n_nv, 0:n_nm) )
 
     ! main loop (in new process division)
-    do ips = 0, n_nps-1
-       do ipm = 0, n_npm-1
-          do ipv = 0, n_npv-1
-             do ipz = 0, n_npz-1
-                do ipw = 0, n_npw-1
-                   ! fill in nff
-                   
+    do loop = loop_cnt_sta(stpnum), loop_cnt_end(stpnum)
+       ! get time
+       call rb_cnt_gettime(loop, time)
+       
+       do ips = 0, n_nps-1
+          do ipm = 0, n_npm-1
+             do ipv = 0, n_npv-1
+                do ipz = 0, n_npz-1
+                   do ipw = 0, n_npw-1
+                      ! fill in nff
+                      
