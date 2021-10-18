@@ -1,6 +1,6 @@
 !-------------------------------------------------------------------------------
 !
-!    diag_interp: interpolation complex 5d array
+!    diag_interp: interpolation complex array
 !                                                   (FUJITSU LTD, November 2021)
 !
 !-------------------------------------------------------------------------------
@@ -12,7 +12,7 @@ MODULE diag_interp
   real(kind=DP), parameter :: zero = 0.0_DP, one = 1.0_DP
 
   !----------------------------------------------------------------------------
-  ! interpolator class for complex 5d data
+  ! interpolator class for complex 5d(x, y, z, v, m) data
   !----------------------------------------------------------------------------
   type, public :: interp_5d
      private
@@ -26,7 +26,23 @@ MODULE diag_interp
      procedure, public :: finalize => finalize_interp_5d
   end type interp_5d
 
-  
+
+  !----------------------------------------------------------------------------
+  ! interpolator class for complex 3d(z, v, m) data
+  !----------------------------------------------------------------------------
+  type, public :: interp_3d
+     private
+     complex(kind=DP), dimension(:,:,:), allocatable :: f
+     real(kind=DP), dimension(:), allocatable :: z, v, m
+     integer :: iloz = 1, ilov = 1, ilom = 1
+     logical :: initialized = .false.
+   contains
+     procedure, public :: initialize => initialize_interp_3d
+     procedure, public :: interpolate => interpolate_interp_3d
+     procedure, public :: finalize => finalize_interp_3d
+  end type interp_3d
+
+
 CONTAINS
 
   !-------------------------------------------------------------------------
@@ -299,5 +315,104 @@ CONTAINS
     me_%ilom = 1
     me_%initialized = .false.
   end subroutine finalize_interp_5d
-  
+
+
+  !-------------------------------------------------------------------------
+  ! constructor for interp_3d class
+  !-------------------------------------------------------------------------
+  pure subroutine initialize_interp_3d(me_, z, v, m, f, istat)
+    implicit none
+    class(interp_3d), intent(inout) :: me_
+    real(kind=DP), dimension(:), intent(in) :: z, v, m
+    complex(kind=DP), dimension(:,:,:), intent(in) :: f
+    integer, intent(out), optional :: istat
+
+    call me_%finalize()
+
+    if ( present(istat) ) then
+       istat = 0
+       if ( size(z) < 2 .or. size(z) /= size(f, 1) ) istat = 1
+       if ( size(v) < 2 .or. size(v) /= size(f, 2) ) istat = 2
+       if ( size(m) < 2 .or. size(m) /= size(f, 3) ) istat = 3
+       if ( istat /= 0 ) then
+          return
+       end if
+    else
+       if ( size(z) < 2 .or. size(z) /= size(f, 1) .or. &
+            size(v) < 2 .or. size(v) /= size(f, 2) .or. &
+            size(m) < 2 .or. size(m) /= size(f, 3) ) then
+          return
+       end if
+    end if
+
+    allocate(me_%f(size(z), size(v), size(m))); me_%f = f
+    allocate(me_%z(size(z))); me_%z = z
+    allocate(me_%v(size(v))); me_%v = v
+    allocate(me_%m(size(m))); me_%m = m
+
+    me_%initialized = .true.
+  end subroutine initialize_interp_3d
+
+  !-------------------------------------------------------------------------
+  ! interpolation complex 3d data
+  !-------------------------------------------------------------------------
+  pure subroutine interpolate_interp_3d(me_, z, v, m, f, istat)
+    implicit none
+    class(interp_3d), intent(inout) :: me_
+    real(kind=DP), intent(in) :: z, v, m
+    complex(kind=DP), intent(out) :: f
+    integer, intent(out), optional :: istat
+
+    integer, dimension(2) :: iz, iv, im
+    real(kind=DP) :: p1, p2, p3
+    real(kind=DP) :: q1, q2, q3
+    integer :: mflag
+    complex(kind=DP) :: fz11, fz21, fz12, fz22, fzv1, fzv2
+
+    if ( me_%initialized .eqv. .false. ) then
+       f = zero
+       if ( present(istat) ) istat = -1
+       return
+    end if
+    
+    call dintrv(me_%z, z, me_%iloz, iz(1), iz(2), mflag)
+    call dintrv(me_%v, v, me_%ilov, iv(1), iv(2), mflag)
+    call dintrv(me_%m, m, me_%ilom, im(1), im(2), mflag)
+
+    q1 = (z - me_%z(iz(1))) / (me_%z(iz(2)) - me_%z(iz(1)))
+    q2 = (v - me_%v(iv(1))) / (me_%v(iv(2)) - me_%v(iv(1)))
+    q3 = (m - me_%m(im(1))) / (me_%m(im(2)) - me_%m(im(1)))
+    p1 = one - q1
+    p2 = one - q2
+    p3 = one - q3
+
+    fz11 = p1*me_%f(iz(1),iv(1),im(1)) + q1*me_%f(iz(2),iv(1),im(1))
+    fz21 = p1*me_%f(iz(1),iv(2),im(1)) + q1*me_%f(iz(2),iv(2),im(1))
+    fz12 = p1*me_%f(iz(1),iv(1),im(2)) + q1*me_%f(iz(2),iv(1),im(2))
+    fz22 = p1*me_%f(iz(1),iv(2),im(2)) + q1*me_%f(iz(2),iv(2),im(2))
+    fzv1 = p2*fz11 + q2*fz21
+    fzv2 = p2*fz12 + q2*fz22
+    f = p3*fzv1 + q3*fzv2
+
+    if ( present(istat) ) istat = 0
+    return
+  end subroutine interpolate_interp_3d
+
+  !-------------------------------------------------------------------------
+  ! destructor for interp_3d class
+  !-------------------------------------------------------------------------
+  pure subroutine finalize_interp_3d(me_)
+    implicit none
+    class(interp_3d), intent(inout) :: me_
+
+    if ( allocated(me_%f) ) deallocate(me_%f)
+    if ( allocated(me_%z) ) deallocate(me_%z)
+    if ( allocated(me_%v) ) deallocate(me_%v)
+    if ( allocated(me_%m) ) deallocate(me_%m)
+    me_%iloz = 1
+    me_%ilov = 1
+    me_%ilom = 1
+    me_%initialized = .false.
+  end subroutine finalize_interp_3d
+
 end MODULE diag_interp
