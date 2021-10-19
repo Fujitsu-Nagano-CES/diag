@@ -8,6 +8,7 @@ MODULE diag_chgres_cnt
   use diag_header
   use diag_rb, only : rb_cnt_gettime, rb_cnt_ivimisloop, &
        loop_cnt_sta, loop_cnt_end
+  use diag_geom, only : lz, vmax, mmax
   use netcdf
   use out_netcdf, only : check_nf90err
   implicit none
@@ -94,13 +95,13 @@ CONTAINS
 
     integer :: n_nx, n_gy, n_gz, n_gv, n_gm, n_npw, n_npz, n_npv, n_npm, n_nps
     integer :: n_ny, n_nz, n_nv, n_nm
-    integer :: stpnum, ips, ipm, ipv, ipz, ipw
-    integer :: igx, igy, igz, igv, igm, loop
-    real(kind=DP) :: time
+    integer :: stpnum, ips, ipm, ipv, ipz, ipw, loop
+    integer :: igx0, igy0, igz0, igv0, igm0, igx1, igy1, igz1, igv1, igm1
+    real(kind=DP) :: time, z0, v0, m0, z1, v1, m1
     ! buffer for write to file
     complex(kind=DP), dimension(:,:,:,:,:), allocatable :: nff
-    ! buffer for rb_cnt_ivimisloop
-    complex(kind=DP) :: ff(-nx:nx, 0:global_ny, -global_nz:global_nz-1)
+    ! buffer for rb_cnt_ivimisloop (x2 x2)
+    complex(kind=DP) :: off(-nx:nx, 0:global_ny, -global_nz:global_nz-1, 2, 2)
     character(len=*), parameter :: default_odir = "./chgres_cnt"
     character(len=512) :: odir
 
@@ -139,15 +140,38 @@ CONTAINS
     ! allocate work for new cnt
     allocate( nff(-n_nx:n_nx, 0:n_ny, -n_nz:n_nz-1, 1:2*n_nv, 0:n_nm) )
 
+    ! new delta (z, v, m)
+    n_dz = lz / real(ngz, kind=DP)
+    n_dv = 2._DP * vmax / real(2 * n_nv * n_npv -1, kind=DP)
+    n_dm = mmax / real(n_npm * (n_nm+1) -1, kind=DP)
+    
     ! main loop (in new process division)
     do loop = loop_cnt_sta(stpnum), loop_cnt_end(stpnum)
        ! get time
        call rb_cnt_gettime(loop, time)
        
        do ips = 0, n_nps-1
-          do ipm = 0, n_npm-1
-             do ipv = 0, n_npv-1
-                do ipz = 0, n_npz-1
-                   do ipw = 0, n_npw-1
-                      ! fill in nff
-                      
+       do ipm = 0, n_npm-1
+       do ipv = 0, n_npv-1
+       do ipz = 0, n_npz-1
+       do ipw = 0, n_npw-1
+          ! new index range in global
+          igx0 = -n_nx; igx1 = n_nx
+          igy0 = ipw*(n_ny+1); igy1 = min(igy+n_ny, n_gy)
+          igz0 = -n_gz + ipz*2*n_nz; igz1 = igz0 + 2*n_nz -1
+          igv0 = 1 + ipv*2*n_nv; igv1 = igv0 + 2*n_nv -1
+          igm0 = ipm*(n_nm+1); igm1 = igm0 + n_nm
+
+          ! new coordinate range (z, v, m)
+          z0 = igz0 * n_dz; z1 = igz1 * n_dz
+          v0 = -vmax + (igv0-1)*n_dv; v1 = -vmax + (igv1-1)*n_dv
+          m0 = igm0 * n_dm; m1 = igm1 * n_dm
+
+          ! in process loop
+          do igm = igm0, igm1
+             m = m0 + igm*n_dm
+             do igv = igv0, igv1
+                v = v0 + igv*n_dv
+                
+                ! get off(:, :, :, 1:2, 1:2) around (v, m)
+                
