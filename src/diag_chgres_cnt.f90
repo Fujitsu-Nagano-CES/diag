@@ -79,6 +79,11 @@ CONTAINS
     return
   end SUBROUTINE check_params
 
+  SUBROUTINE get_org_ivim(v, m, oiv, oim)
+    real(kind=DP), intent(in) :: v, m
+    integer, dimension(2), intent(out) :: oiv, oim
+
+  end SUBROUTINE get_org_ivim
 
 !-------------------------------------------------------------------------------
 !
