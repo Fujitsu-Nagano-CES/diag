@@ -16,7 +16,8 @@ MODULE diag_interp
   !----------------------------------------------------------------------------
   type, public :: interp_5d
      private
-     complex(kind=DP), dimension(:,:,:,:,:), allocatable :: f
+     !complex(kind=DP), dimension(:,:,:,:,:), allocatable :: f
+     complex(kind=DP), dimension(:,:,:,:,:), pointer :: f
      real(kind=DP), dimension(:), allocatable :: x, y, z, v, m
      integer :: ilox = 1, iloy = 1, iloz = 1, ilov = 1, ilom = 1
      logical :: initialized = .false.
@@ -32,7 +33,8 @@ MODULE diag_interp
   !----------------------------------------------------------------------------
   type, public :: interp_3d
      private
-     complex(kind=DP), dimension(:,:,:), allocatable :: f
+     !complex(kind=DP), dimension(:,:,:), allocatable :: f
+     complex(kind=DP), dimension(:,:,:), pointer :: f
      real(kind=DP), dimension(:), allocatable :: z, v, m
      integer :: iloz = 1, ilov = 1, ilom = 1
      logical :: initialized = .false.
@@ -157,11 +159,11 @@ CONTAINS
   !-------------------------------------------------------------------------
   ! constructor for interp_5d class
   !-------------------------------------------------------------------------
-  pure subroutine initialize_interp_5d(me_, x, y, z, v, m, f, istat)
+  subroutine initialize_interp_5d(me_, x, y, z, v, m, f, istat)
     implicit none
     class(interp_5d), intent(inout) :: me_
     real(kind=DP), dimension(:), intent(in) :: x, y, z, v, m
-    complex(kind=DP), dimension(:,:,:,:,:), intent(in) :: f
+    complex(kind=DP), dimension(:,:,:,:,:), intent(in), target :: f
     integer, intent(out), optional :: istat
 
     call me_%finalize()
@@ -186,7 +188,8 @@ CONTAINS
        end if
     end if
 
-    allocate(me_%f(size(x), size(y), size(z), size(v), size(m))); me_%f = f
+    !allocate(me_%f(size(x), size(y), size(z), size(v), size(m))); me_%f = f
+    me_%f => f
     allocate(me_%x(size(x))); me_%x = x
     allocate(me_%y(size(y))); me_%y = y
     allocate(me_%z(size(z))); me_%z = z
@@ -199,7 +202,7 @@ CONTAINS
   !-------------------------------------------------------------------------
   ! interpolation complex 5d data
   !-------------------------------------------------------------------------
-  pure subroutine interpolate_interp_5d(me_, x, y, z, v, m, f, istat)
+  subroutine interpolate_interp_5d(me_, x, y, z, v, m, f, istat)
     implicit none
     class(interp_5d), intent(inout) :: me_
     real(kind=DP), intent(in) :: x, y, z, v, m
@@ -298,11 +301,12 @@ CONTAINS
   !-------------------------------------------------------------------------
   ! destructor for interp_5d class
   !-------------------------------------------------------------------------
-  pure subroutine finalize_interp_5d(me_)
+  subroutine finalize_interp_5d(me_)
     implicit none
     class(interp_5d), intent(inout) :: me_
 
-    if ( allocated(me_%f) ) deallocate(me_%f)
+    !if ( allocated(me_%f) ) deallocate(me_%f)
+    if ( associated(me_%f) ) nullify(me_%f)
     if ( allocated(me_%x) ) deallocate(me_%x)
     if ( allocated(me_%y) ) deallocate(me_%y)
     if ( allocated(me_%z) ) deallocate(me_%z)
@@ -320,11 +324,11 @@ CONTAINS
   !-------------------------------------------------------------------------
   ! constructor for interp_3d class
   !-------------------------------------------------------------------------
-  pure subroutine initialize_interp_3d(me_, z, v, m, f, istat)
+  subroutine initialize_interp_3d(me_, z, v, m, f, istat)
     implicit none
     class(interp_3d), intent(inout) :: me_
     real(kind=DP), dimension(:), intent(in) :: z, v, m
-    complex(kind=DP), dimension(:,:,:), intent(in) :: f
+    complex(kind=DP), dimension(:,:,:), intent(in), target :: f
     integer, intent(out), optional :: istat
 
     call me_%finalize()
@@ -345,7 +349,8 @@ CONTAINS
        end if
     end if
 
-    allocate(me_%f(size(z), size(v), size(m))); me_%f = f
+    !allocate(me_%f(size(z), size(v), size(m))); me_%f = f
+    me_%f => f
     allocate(me_%z(size(z))); me_%z = z
     allocate(me_%v(size(v))); me_%v = v
     allocate(me_%m(size(m))); me_%m = m
@@ -356,7 +361,7 @@ CONTAINS
   !-------------------------------------------------------------------------
   ! interpolation complex 3d data
   !-------------------------------------------------------------------------
-  pure subroutine interpolate_interp_3d(me_, z, v, m, f, istat)
+  subroutine interpolate_interp_3d(me_, z, v, m, f, istat)
     implicit none
     class(interp_3d), intent(inout) :: me_
     real(kind=DP), intent(in) :: z, v, m
@@ -401,11 +406,12 @@ CONTAINS
   !-------------------------------------------------------------------------
   ! destructor for interp_3d class
   !-------------------------------------------------------------------------
-  pure subroutine finalize_interp_3d(me_)
+  subroutine finalize_interp_3d(me_)
     implicit none
     class(interp_3d), intent(inout) :: me_
 
-    if ( allocated(me_%f) ) deallocate(me_%f)
+    !if ( allocated(me_%f) ) deallocate(me_%f)
+    if ( associated(me_%f) ) nullify(me_%f)
     if ( allocated(me_%z) ) deallocate(me_%z)
     if ( allocated(me_%v) ) deallocate(me_%v)
     if ( allocated(me_%m) ) deallocate(me_%m)
