@@ -9,6 +9,7 @@ MODULE diag_chgres_cnt
   use diag_rb, only : rb_cnt_gettime, rb_cnt_ivimisloop, &
        loop_cnt_sta, loop_cnt_end
   use diag_geom, only : lz, vmax, mmax
+  use diag_interp
   use netcdf
   use out_netcdf, only : check_nf90err
   implicit none
@@ -79,10 +80,50 @@ CONTAINS
     return
   end SUBROUTINE check_params
 
-  SUBROUTINE get_org_ivim(v, m, oiv, oim)
+  !-------------------------------------------------------------------------
+  ! get_org_ivim: get indices range of v and m in original mesh
+  !-------------------------------------------------------------------------
+  SUBROUTINE get_org_ivim(v, m, oiv, oim, vflag, mflag)
     real(kind=DP), intent(in) :: v, m
     integer, dimension(2), intent(out) :: oiv, oim
+    integer, optional, intent(out) :: vflag, mflag
+    integer :: i
 
+    ! indices of v
+    if ( v < -vmax ) then ! equivalent to (i == 1)
+       oiv(1) = 1; oiv(2) = 2
+       if ( present(vflag) ) vflag = -1
+    else if ( v > vmax ) then
+       oiv(2) = 2 * global_nv; oiv(1) = oiv(2) -1
+       if ( present(vflag) ) vflag = 1
+    else
+       if ( present(vflag) ) vflag = 0
+       do i = 2, 2*global_nv
+          if ( v < -vmax + (i-1)*dv ) then
+             oiv(1) = i -1; oiv(2) = i
+             exit
+          end if
+       end do
+    end if
+
+    ! indices of m
+    if ( m < 0 ) then ! equivalent to (i == 0)
+       oim(1) = 0; oim(2) = 1
+       if ( present(mflag) ) mflag = -1
+    else if ( m > mmax ) then
+       oim(2) = global_nm; oim(1) = oim(2) -1
+       if ( present(mflag) ) mflag = 1
+    else
+       if ( present(mflag) ) mflag = 0
+       do i = 1, global_nm
+          if ( m < i*dm ) then
+             oim(1) = i -1; oim(2) = i
+             exit
+          end if
+       end do
+    end if
+
+    return
   end SUBROUTINE get_org_ivim
 
 !-------------------------------------------------------------------------------
@@ -107,8 +148,11 @@ CONTAINS
     complex(kind=DP), dimension(:,:,:,:,:), allocatable :: nff
     ! buffer for rb_cnt_ivimisloop (x2 x2)
     complex(kind=DP) :: off(-nx:nx, 0:global_ny, -global_nz:global_nz-1, 2, 2)
+    complex(kind=DP) :: woff(-nx:nx, 0:global_ny, -global_nz:global_nz-1)
     character(len=*), parameter :: default_odir = "./chgres_cnt"
     character(len=512) :: odir
+    ! interpolator
+    type(interp_5d) :: intp5d
 
     ! check stpnum
     stpnum = merge(stpn, enum, present(stpn))
@@ -149,6 +193,10 @@ CONTAINS
     n_dz = lz / real(ngz, kind=DP)
     n_dv = 2._DP * vmax / real(2 * n_nv * n_npv -1, kind=DP)
     n_dm = mmax / real(n_npm * (n_nm+1) -1, kind=DP)
+
+    ! setup interpolator with original (x, y, z) mesh
+    intp5d%initialize(nx*2+1, ny+1, nz*2, 2, 2)
+    !! set coordinate of x, y, z
     
     ! main loop (in new process division)
     do loop = loop_cnt_sta(stpnum), loop_cnt_end(stpnum)
@@ -178,5 +226,22 @@ CONTAINS
              do igv = igv0, igv1
                 v = v0 + igv*n_dv
                 
+                ! get original indices around (v, m)
+                call get_org_ivim(v, m, oiv, oim)
+
                 ! get off(:, :, :, 1:2, 1:2) around (v, m)
+                ! (v, m) = (1, 1)
+                call rb_cnt_ivimisloop(oiv(1), oim(1), ips, loop, woff)
+                off(:, :, :, 1, 1) = woff
+                ! (v, m) = (2, 1)
+                call rb_cnt_ivimisloop(oiv(2), oim(1), ips, loop, woff)
+                off(:, :, :, 2, 1) = woff
+                ! (v, m) = (1, 2)
+                call rb_cnt_ivimisloop(oiv(1), oim(2), ips, loop, woff)
+                off(:, :, :, 1, 2) = woff
+                ! (v, m) = (2, 2)
+                call rb_cnt_ivimisloop(oiv(2), oim(2), ips, loop, woff)
+                off(:, :, :, 2, 2) = woff
+
+                ! interpolation
                 

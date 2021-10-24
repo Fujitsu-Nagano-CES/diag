@@ -15,7 +15,7 @@ MODULE diag_interp
   ! interpolator class for complex 5d(x, y, z, v, m) data
   !----------------------------------------------------------------------------
   type, public :: interp_5d
-     private
+     !private
      !complex(kind=DP), dimension(:,:,:,:,:), allocatable :: f
      complex(kind=DP), dimension(:,:,:,:,:), pointer :: f
      real(kind=DP), dimension(:), allocatable :: x, y, z, v, m
@@ -32,7 +32,7 @@ MODULE diag_interp
   ! interpolator class for complex 3d(z, v, m) data
   !----------------------------------------------------------------------------
   type, public :: interp_3d
-     private
+     !private
      !complex(kind=DP), dimension(:,:,:), allocatable :: f
      complex(kind=DP), dimension(:,:,:), pointer :: f
      real(kind=DP), dimension(:), allocatable :: z, v, m
@@ -159,42 +159,40 @@ CONTAINS
   !-------------------------------------------------------------------------
   ! constructor for interp_5d class
   !-------------------------------------------------------------------------
-  subroutine initialize_interp_5d(me_, x, y, z, v, m, f, istat)
+  subroutine initialize_interp_5d(me_, nx, ny, nz, nv, nm)
     implicit none
     class(interp_5d), intent(inout) :: me_
-    real(kind=DP), dimension(:), intent(in) :: x, y, z, v, m
-    complex(kind=DP), dimension(:,:,:,:,:), intent(in), target :: f
-    integer, intent(out), optional :: istat
+    integer, intent(in) :: nx, ny, nz, nv, nm
+    integer :: i
 
     call me_%finalize()
 
-    if ( present(istat) ) then
-       istat = 0
-       if ( size(x) < 2 .or. size(x) /= size(f, 1) ) istat = 1
-       if ( size(y) < 2 .or. size(y) /= size(f, 2) ) istat = 2
-       if ( size(z) < 2 .or. size(z) /= size(f, 3) ) istat = 3
-       if ( size(v) < 2 .or. size(v) /= size(f, 4) ) istat = 4
-       if ( size(m) < 2 .or. size(m) /= size(f, 5) ) istat = 5
-       if ( istat /= 0 ) then
-          return
-       end if
-    else
-       if ( size(x) < 2 .or. size(x) /= size(f, 1) .or. &
-            size(y) < 2 .or. size(y) /= size(f, 2) .or. &
-            size(z) < 2 .or. size(z) /= size(f, 3) .or. &
-            size(v) < 2 .or. size(v) /= size(f, 4) .or. &
-            size(m) < 2 .or. size(m) /= size(f, 5) ) then
-          return
-       end if
+    if ( nx < 2 .or. ny < 2 .or. nz < 2 .or. nv < 2 .or. nm < 2 ) then
+       return
     end if
 
     !allocate(me_%f(size(x), size(y), size(z), size(v), size(m))); me_%f = f
-    me_%f => f
-    allocate(me_%x(size(x))); me_%x = x
-    allocate(me_%y(size(y))); me_%y = y
-    allocate(me_%z(size(z))); me_%z = z
-    allocate(me_%v(size(v))); me_%v = v
-    allocate(me_%m(size(m))); me_%m = m
+    allocate(me_%x(nx))
+    allocate(me_%y(ny))
+    allocate(me_%z(nz))
+    allocate(me_%v(nv))
+    allocate(me_%m(nm))
+
+    do i = 1, nx
+       me_%x(i) = real(i-1)
+    end do
+    do i = 1, ny
+       me_%y(i) = real(i-1)
+    end do
+    do i = 1, nz
+       me_%z(i) = real(i-1)
+    end do
+    do i = 1, nv
+       me_%v(i) = real(i-1)
+    end do
+    do i = 1, nm
+       me_%m(i) = real(i-1)
+    end do
 
     me_%initialized = .true.
   end subroutine initialize_interp_5d
@@ -219,7 +217,7 @@ CONTAINS
          fx2112, fx1212, fx2212, fx1122, fx2122, fx1222, fx2222, fxy112, &
          fxy212, fxy122, fxy222, fxyz12, fxyz22, fxyzv2
     
-    if ( me_%initialized .eqv. .false. ) then
+    if ( me_%initialized .eqv. .false. .or. .not. associated(me_%f)) then
        f = zero
        if ( present(istat) ) istat = -1
        return
