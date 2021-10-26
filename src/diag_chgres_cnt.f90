@@ -147,7 +147,8 @@ CONTAINS
     ! buffer for write to file
     complex(kind=DP), dimension(:,:,:,:,:), allocatable :: nff
     ! buffer for rb_cnt_ivimisloop (x2 x2)
-    complex(kind=DP) :: off(-nx:nx, 0:global_ny, -global_nz:global_nz-1, 2, 2)
+    complex(kind=DP), target :: &
+         off(-nx:nx, 0:global_ny, -global_nz:global_nz-1, 2, 2)
     complex(kind=DP) :: woff(-nx:nx, 0:global_ny, -global_nz:global_nz-1)
     character(len=*), parameter :: default_odir = "./chgres_cnt"
     character(len=512) :: odir
@@ -187,16 +188,19 @@ CONTAINS
     call renew_dir( odir )
 
     ! allocate work for new cnt
-    allocate( nff(-n_nx:n_nx, 0:n_ny, -n_nz:n_nz-1, 1:2*n_nv, 0:n_nm) )
+    !allocate( nff(-n_nx:n_nx, 0:n_ny, -n_nz:n_nz-1, 1:2*n_nv, 0:n_nm) )
+    allocate( nff(2*n_nx+1, n_ny+1, 2*n_nz, 2*n_nv, n_nm+1) )
 
     ! new delta (z, v, m)
     n_dz = lz / real(ngz, kind=DP)
     n_dv = 2._DP * vmax / real(2 * n_nv * n_npv -1, kind=DP)
     n_dm = mmax / real(n_npm * (n_nm+1) -1, kind=DP)
 
-    ! setup interpolator with original (x, y, z) mesh
+    ! setup interpolator with original mesh
     intp5d%initialize(nx*2+1, ny+1, nz*2, 2, 2)
-    !! set coordinate of x, y, z
+    do oiz = 0, 2*global_nz
+       intp5d%z(oiz+1) = -lz + dz*oiz
+    end do
     
     ! main loop (in new process division)
     do loop = loop_cnt_sta(stpnum), loop_cnt_end(stpnum)
@@ -222,12 +226,12 @@ CONTAINS
 
           ! in process loop
           do igm = igm0, igm1
-             m = m0 + igm*n_dm
+             mm = m0 + igm*n_dm
              do igv = igv0, igv1
-                v = v0 + igv*n_dv
+                vv = v0 + igv*n_dv
                 
                 ! get original indices around (v, m)
-                call get_org_ivim(v, m, oiv, oim)
+                call get_org_ivim(vv, mm, oiv, oim)
 
                 ! get off(:, :, :, 1:2, 1:2) around (v, m)
                 ! (v, m) = (1, 1)
@@ -243,5 +247,26 @@ CONTAINS
                 call rb_cnt_ivimisloop(oiv(2), oim(2), ips, loop, woff)
                 off(:, :, :, 2, 2) = woff
 
-                ! interpolation
+                ! setup interpolator
+                intp5d%v(1) = -vmax + dv * oiv(1)
+                intp5d%v(2) = -vmax + dv * oiv(2)
+                intp5d%m(1) = dm * oim(1)
+                intp5d%m(2) = dm * oim(2)
+                intp5d%f => off
+
+                ! interplation loop
+                do igz = igz0, igz1
+                   zz = z0 + igz*n_dz
+                   do igy = igy0, igy1
+                      yy = real(igy)
+                      do igx = igx0, igx1
+                         xx = real(igx)
+                         call intp5d%interpolate(xx, yy, zz, vv, mm, f)
+                         nff(igx+igx0+1, igy-igy0+1, igz-igz+1, &
+                              igv-igv0+1, igm-igm0+1) = f
+                      end do
+                   end do
+                end do
+
+                ! write to FortranI/O file
                 

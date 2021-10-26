@@ -179,7 +179,8 @@ CONTAINS
     allocate(me_%m(nm))
 
     do i = 1, nx
-       me_%x(i) = real(i-1)
+       !me_%x(i) = real(i-1)
+       me_%x(i) = real(-(nx-1)/2 + (i-1))
     end do
     do i = 1, ny
        me_%y(i) = real(i-1)
