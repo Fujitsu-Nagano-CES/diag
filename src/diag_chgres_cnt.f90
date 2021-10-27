@@ -152,6 +152,8 @@ CONTAINS
     complex(kind=DP) :: woff(-nx:nx, 0:global_ny, -global_nz:global_nz-1)
     character(len=*), parameter :: default_odir = "./chgres_cnt"
     character(len=512) :: odir
+    character(len=6) :: crank
+    character(len=3) :: cnum
     ! interpolator
     type(interp_5d) :: intp5d
 
@@ -268,5 +270,13 @@ CONTAINS
                    end do
                 end do
 
-                ! write to FortranI/O file
+                ! open FortranI/O file
+                ir = ipw + n_npw*ipz + n_npw*n_npz*ipv &
+                     + n_npw*n_npz*n_npv*ipm + n_npw*n_npz*n_npv*n_npm*ips
+                write(crank, fmt="(i6.6)") ir
+                write(cnum, fmt="(i3.3)" ) loop
+                open(unit=cntfos, file=trim(odir)//"/"//crank//".cnt."//cnum, &
+                     form="unformatted")
+
+                ! write into FortranI/O file
                 
