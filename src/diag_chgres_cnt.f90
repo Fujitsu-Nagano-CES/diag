@@ -8,16 +8,16 @@ MODULE diag_chgres_cnt
   use diag_header
   use diag_rb, only : rb_cnt_gettime, rb_cnt_ivimisloop, &
        loop_cnt_sta, loop_cnt_end
-  use diag_geom, only : lz, vmax, mmax
+  use diag_geom, only : lz, vmax, mmax, dz, dv, dm
   use diag_interp
   use netcdf
-  use out_netcdf, only : check_nf90err
+  !use out_netcdf, only : check_nf90err
   implicit none
 
-  private renew_dir, check_params, open_fortfiles, close_fortfiles
+  private renew_dir, check_params, get_org_ivim
   integer, parameter :: cntfos = 900000000
 
-  public  chgres_cnt_fortran, chgres_cnt_netcdf
+  public  chgres_cnt_fortran !, chgres_cnt_netcdf
 
     
 CONTAINS
@@ -143,7 +143,10 @@ CONTAINS
     integer :: n_ny, n_nz, n_nv, n_nm
     integer :: stpnum, ips, ipm, ipv, ipz, ipw, loop
     integer :: igx0, igy0, igz0, igv0, igm0, igx1, igy1, igz1, igv1, igm1
-    real(kind=DP) :: time, z0, v0, m0, z1, v1, m1
+    integer :: igx, igy, igz, igv, igm, ir, oiz, oiv(2), oim(2)
+    real(kind=DP) :: time, z0, v0, m0, z1, v1, m1, n_dm, n_dv, n_dz
+    real(kind=DP) :: xx, yy, zz, vv, mm
+    complex(kind=DP) :: f
     ! buffer for write to file
     complex(kind=DP), dimension(:,:,:,:,:), allocatable :: nff
     ! buffer for rb_cnt_ivimisloop (x2 x2)
@@ -166,15 +169,15 @@ CONTAINS
 
     ! check new resolution and process division number
     n_nx = merge(nnx, nx, present(nnx))
-    n_gy = merge(ngy, gy, present(ngy))
-    n_gz = merge(ngz, gz, present(ngz))
-    n_gv = merge(ngv, gv, present(ngv))
-    n_gm = merge(ngm, gm, present(ngm))
-    n_npw = merge(nnpw, npw, present(nnpw))
-    n_npz = merge(nnpz, npz, present(nnpz))
-    n_npv = merge(nnpv, npv, present(nnpv))
-    n_npm = merge(nnpm, npm, present(nnpm))
-    n_nps = merge(nnps, nps, present(nnps))
+    n_gy = merge(ngy, global_ny, present(ngy))
+    n_gz = merge(ngz, global_nz, present(ngz))
+    n_gv = merge(ngv, global_nv, present(ngv))
+    n_gm = merge(ngm, global_nm, present(ngm))
+    n_npw = merge(nnpw, nprocw, present(nnpw))
+    n_npz = merge(nnpz, nprocz, present(nnpz))
+    n_npv = merge(nnpv, nprocv, present(nnpv))
+    n_npm = merge(nnpm, nprocm, present(nnpm))
+    n_nps = merge(nnps, nprocs, present(nnps))
     call check_params(n_nx,n_gy,n_gz,n_gv,n_gm, n_npw,n_npz,n_npv,n_npm,n_nps)
     n_ny = n_gy / n_npw
     n_nz = n_gz / n_npz
@@ -199,7 +202,7 @@ CONTAINS
     n_dm = mmax / real(n_npm * (n_nm+1) -1, kind=DP)
 
     ! setup interpolator with original mesh
-    intp5d%initialize(nx*2+1, ny+1, nz*2, 2, 2)
+    call intp5d%initialize(nx*2+1, ny+1, nz*2, 2, 2)
     do oiz = 0, 2*global_nz
        intp5d%z(oiz+1) = -lz + dz*oiz
     end do
@@ -216,7 +219,7 @@ CONTAINS
        do ipw = 0, n_npw-1
           ! new index range in global
           igx0 = -n_nx; igx1 = n_nx
-          igy0 = ipw*(n_ny+1); igy1 = min(igy+n_ny, n_gy)
+          igy0 = ipw*(n_ny+1); igy1 = min(igy0+n_ny, n_gy)
           igz0 = -n_gz + ipz*2*n_nz; igz1 = igz0 + 2*n_nz -1
           igv0 = 1 + ipv*2*n_nv; igv1 = igv0 + 2*n_nv -1
           igm0 = ipm*(n_nm+1); igm1 = igm0 + n_nm
@@ -279,4 +282,29 @@ CONTAINS
                      form="unformatted")
 
                 ! write into FortranI/O file
-                
+                write(unit=cntfos) time, nff
+
+                ! close the file
+                close(cntfos)
+
+             end do ! igv
+          end do ! igm
+
+       end do ! ipw
+       end do ! ipz
+       end do ! ipv
+       end do ! ipm
+       end do ! ips
+
+    end do ! loop
+
+    ! finalize interpolator
+    call intp5d%finalize()
+
+    ! dealocate array
+    deallocate(nff)
+
+    return
+  end SUBROUTINE chgres_cnt_fortran
+
+end MODULE diag_chgres_cnt

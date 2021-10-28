@@ -8,12 +8,12 @@ FFLAGS += -fdefault-integer-8 # Change default integer type as integer(kind=8).
 #         -fbounds-check -Wuninitialized -ffpe-trap=invalid,zero,overflow # Debug
 ### Usage of FFTW (spack load fftw)
 ##FFTW_DIR=`spack location -i fftw`
-FFTW_DIR=/usr
+FFTW_DIR=/usr/local
 INC += -I$(FFTW_DIR)/include
 LIB += -L$(FFTW_DIR)/lib -lfftw3 -lm
 ### Usage of NetCDF (spack load netcdf-fortran)
 ##NETCDF_DIR=`spack location -i netcdf-fortran`
-NETCDF_DIR=/usr
+NETCDF_DIR=/usr/local
 INC += -I$(NETCDF_DIR)/include
 ##LIB += -L$(NETCDF_DIR)/lib -lnetcdff -lnetcdf -lhdf5_hl -lhdf5
 LIB += `nc-config --libs` `nc-config --flibs`
@@ -65,6 +65,8 @@ diag:	${SRC}/diag_header.f90\
 	${SRC}/out_fluidtotaltrans.f90\
 	${SRC}/out_fluidsubsptrans.f90\
 	${SRC}/out_fluiddetailtrans.f90\
+	${SRC}/diag_interp.f90\
+	${SRC}/diag_chgres_cnt.f90\
 	${SRC}/diag_main.f90
 
 	${FC} ${FFLAGS} -c ${SRC}/diag_header.f90
