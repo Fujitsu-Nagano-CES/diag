@@ -34,7 +34,7 @@ MODULE diag_header
 !  Data distribution for MPI
 !--------------------------------------
 
-  integer, parameter :: nprocw = 2, nprocz = 4, nprocv = 2, nprocm = 2, nprocs = 1
+  integer, parameter :: nprocw = 2, nprocz = 2, nprocv = 2, nprocm = 2, nprocs = 2
 !%%%%%%%%%%%%%%%%%%%%%
 
 

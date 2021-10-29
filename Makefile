@@ -1,6 +1,7 @@
 ### GNU Fortran compiler ###
 FC = gfortran
-FFLAGS = -mcmodel=medium -m64 -march=native -mtune=native -O3 -ffast-math # Optimization
+#FFLAGS = -mcmodel=medium -m64 -march=native -mtune=native -O3 -ffast-math # Optimization
+FFLAGS = -mcmodel=medium -m64 -march=native -mtune=native -O1 -g -ffast-math # Optimization
 FFLAGS += -frecord-marker=4 # 4-byte header/footer
 FFLAGS += -fdefault-integer-8 # Change default integer type as integer(kind=8).
 #FFLAGS += -fopenmp # OpenMP
@@ -106,11 +107,13 @@ diag:	${SRC}/diag_header.f90\
 	${FC} ${FFLAGS} -c ${SRC}/out_fluidtotaltrans.f90
 #	${FC} ${FFLAGS} -c ${SRC}/out_fluidsubsptrans.f90
 	${FC} ${FFLAGS} -c ${SRC}/out_fluiddetailtrans.f90
+	${FC} ${FFLAGS} -c ${SRC}/diag_interp.f90 ${INC}
+	${FC} ${FFLAGS} -c ${SRC}/diag_chgres_cnt.f90 ${INC}
 	${FC} ${FFLAGS} -c ${SRC}/diag_main.f90
 
 	${FC} ${FFLAGS} *.o -o ${PROG} ${LIB}
 
-	rm -f *.o *.mod
+	#rm -f *.o *.mod
 
 clean:
 	rm -f *.o *.mod *.exe go.diag*.o* go.diag*.i*
