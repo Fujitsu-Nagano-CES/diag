@@ -23,9 +23,9 @@ MODULE diag_header
 !%%%%%%%%%%%%%%%%%%%%%%
 
 !%%% GKV parameters %%%
-  integer, parameter :: nxw = 10, nyw = 20
-  integer, parameter :: nx = 0, global_ny = 12 ! 2/3 de-aliasing rule
-  integer, parameter :: global_nz = 48, global_nv = 24, global_nm = 15
+  integer, parameter :: nxw = 10, nyw = 10
+  integer, parameter :: nx = 6, global_ny = 6 ! 2/3 de-aliasing rule
+  integer, parameter :: global_nz = 8, global_nv = 12, global_nm = 7
 
   integer, parameter :: nzb = 2, &  ! the number of ghost grids in z
                         nvb = 2     ! the number of ghost grids in v and m

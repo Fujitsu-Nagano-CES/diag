@@ -181,7 +181,7 @@ CONTAINS
     call check_params(n_nx,n_gy,n_gz,n_gv,n_gm, n_npw,n_npz,n_npv,n_npm,n_nps)
     n_ny = n_gy / n_npw
     n_nz = n_gz / n_npz
-    n_nz = n_gv / n_npv
+    n_nv = n_gv / n_npv
     n_nm = (n_gm + 1) / n_npm - 1
 
     ! prepare directory for fortran files
@@ -231,9 +231,9 @@ CONTAINS
 
           ! in process loop
           do igm = igm0, igm1
-             mm = m0 + igm*n_dm
+             mm = m0 + (igm-igm0)*n_dm
              do igv = igv0, igv1
-                vv = v0 + igv*n_dv
+                vv = v0 + (igv-igv0)*n_dv
                 
                 ! get original indices around (v, m)
                 call get_org_ivim(vv, mm, oiv, oim)
@@ -261,13 +261,13 @@ CONTAINS
 
                 ! interplation loop
                 do igz = igz0, igz1
-                   zz = z0 + igz*n_dz
+                   zz = z0 + (igz-igz0)*n_dz
                    do igy = igy0, igy1
                       yy = real(igy)
                       do igx = igx0, igx1
                          xx = real(igx)
                          call intp5d%interpolate(xx, yy, zz, vv, mm, f)
-                         nff(igx+igx0+1, igy-igy0+1, igz-igz+1, &
+                         nff(igx-igx0+1, igy-igy0+1, igz-igz0+1, &
                               igv-igv0+1, igm-igm0+1) = f
                       end do
                    end do

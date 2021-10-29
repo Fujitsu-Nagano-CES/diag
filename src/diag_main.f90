@@ -19,6 +19,9 @@ PROGRAM diag
   integer :: mx, gmy, giz, giv, gim, imom, is, &
              loop, flag, loop_sta, loop_end, loop_skp, it, mxt, myt, rankz
 
+  integer :: stpn, nnx, ngy, ngz, ngv, ngm, nnpw, nnpz, nnpv, nnpm, nnps
+  !character(len=*) :: outdir
+
 
 !--- Initialize ---
     call initialize
@@ -34,7 +37,19 @@ PROGRAM diag
 
     
 !--- Change resolution ---
-                                                        
+    nnx = nx
+    ngy = global_ny
+    ngz = global_nz
+    ngv = global_nv
+    ngm = global_nm
+    nnpw= nprocw
+    nnpz= nprocz
+    nnpv= nprocv
+    nnpm= nprocm
+    nnps= nprocs
+    
+    call chgres_cnt_fortran(nnx=nnx, ngy=ngy, ngz=ngz, ngv=ngv, ngm=ngm, &
+        nnpw=nnpw, nnpz=nnpz, nnpv=nnpv, nnpm=nnpm, nnps=nnps)
 !------------------
                                                         call clock_end(10)
 
