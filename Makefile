@@ -1,7 +1,7 @@
 ### GNU Fortran compiler ###
 FC = gfortran
 #FFLAGS = -mcmodel=medium -m64 -march=native -mtune=native -O3 -ffast-math # Optimization
-FFLAGS = -mcmodel=medium -m64 -march=native -mtune=native -O1 -g -ffast-math # Optimization
+FFLAGS = -mcmodel=medium -m64 -march=native -mtune=native -O0 -g -ffast-math # Optimization
 FFLAGS += -frecord-marker=4 # 4-byte header/footer
 FFLAGS += -fdefault-integer-8 # Change default integer type as integer(kind=8).
 #FFLAGS += -fopenmp # OpenMP
@@ -9,12 +9,12 @@ FFLAGS += -fdefault-integer-8 # Change default integer type as integer(kind=8).
 #         -fbounds-check -Wuninitialized -ffpe-trap=invalid,zero,overflow # Debug
 ### Usage of FFTW (spack load fftw)
 ##FFTW_DIR=`spack location -i fftw`
-FFTW_DIR=/usr/local
+FFTW_DIR=/usr
 INC += -I$(FFTW_DIR)/include
 LIB += -L$(FFTW_DIR)/lib -lfftw3 -lm
 ### Usage of NetCDF (spack load netcdf-fortran)
 ##NETCDF_DIR=`spack location -i netcdf-fortran`
-NETCDF_DIR=/usr/local
+NETCDF_DIR=/usr
 INC += -I$(NETCDF_DIR)/include
 ##LIB += -L$(NETCDF_DIR)/lib -lnetcdff -lnetcdf -lhdf5_hl -lhdf5
 LIB += `nc-config --libs` `nc-config --flibs`
@@ -113,7 +113,7 @@ diag:	${SRC}/diag_header.f90\
 
 	${FC} ${FFLAGS} *.o -o ${PROG} ${LIB}
 
-	#rm -f *.o *.mod
+	rm -f *.o *.mod
 
 clean:
 	rm -f *.o *.mod *.exe go.diag*.o* go.diag*.i*

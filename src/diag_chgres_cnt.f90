@@ -202,8 +202,8 @@ CONTAINS
     n_dm = mmax / real(n_npm * (n_nm+1) -1, kind=DP)
 
     ! setup interpolator with original mesh
-    call intp5d%initialize(nx*2+1, ny+1, nz*2, 2, 2)
-    do oiz = 0, 2*global_nz
+    call intp5d%initialize(nx*2+1, global_ny+1, global_nz*2, 2, 2)
+    do oiz = 0, 2*global_nz-1
        intp5d%z(oiz+1) = -lz + dz*oiz
     end do
     
