@@ -149,15 +149,17 @@ CONTAINS
     complex(kind=DP) :: f
     ! buffer for write to file
     complex(kind=DP), dimension(:,:,:,:,:), allocatable :: nff
-    ! buffer for rb_cnt_ivimisloop (x2 x2)
+    ! buffer for rb_cnt_ivimisloop (v=2, m=2)
     complex(kind=DP), target :: &
-         off(-nx:nx, 0:global_ny, -global_nz:global_nz-1, 2, 2)
-    complex(kind=DP) :: woff(-nx:nx, 0:global_ny, -global_nz:global_nz-1)
+         off(2*nx +1, global_ny +1, 2*global_nz, 2, 2)
+    !     off(-nx:nx, 0:global_ny, -global_nz:global_nz-1, 2, 2)
+    complex(kind=DP) :: woff(2*nx +1, global_ny +1, 2*global_nz)
+    !complex(kind=DP) :: woff(-nx:nx, 0:global_ny, -global_nz:global_nz-1)
     character(len=*), parameter :: default_odir = "./chgres_cnt"
     character(len=512) :: odir
     character(len=6) :: crank
     character(len=3) :: cnum
-    ! interpolator
+    ! 5d complex interpolator
     type(interp_5d) :: intp5d
 
     ! check stpnum
@@ -253,8 +255,8 @@ CONTAINS
                 off(:, :, :, 2, 2) = woff
 
                 ! setup interpolator
-                intp5d%v(1) = -vmax + dv * oiv(1)
-                intp5d%v(2) = -vmax + dv * oiv(2)
+                intp5d%v(1) = -vmax + dv * (oiv(1)-1)
+                intp5d%v(2) = -vmax + dv * (oiv(2)-1)
                 intp5d%m(1) = dm * oim(1)
                 intp5d%m(2) = dm * oim(2)
                 intp5d%f => off
@@ -278,13 +280,16 @@ CONTAINS
                      + n_npw*n_npz*n_npv*ipm + n_npw*n_npz*n_npv*n_npm*ips
                 write(crank, fmt="(i6.6)") ir
                 write(cnum, fmt="(i3.3)" ) loop
-                open(unit=cntfos, file=trim(odir)//"/"//crank//".cnt."//cnum, &
+                open(unit=cntfos, &
+                     file=trim(odir)//"/gkvp."//crank//".cnt."//cnum, &
                      form="unformatted")
 
                 ! write into FortranI/O file
+                rewind cntfos
                 write(unit=cntfos) time, nff
 
                 ! close the file
+                call flush(cntfos)
                 close(cntfos)
 
              end do ! igv
