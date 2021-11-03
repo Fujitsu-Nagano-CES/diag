@@ -219,6 +219,32 @@ CONTAINS
        do ipv = 0, n_npv-1
        do ipz = 0, n_npz-1
        do ipw = 0, n_npw-1
+          ! setup rank and loop number string
+          ir = ipw + n_npw*ipz + n_npw*n_npz*ipv &
+               + n_npw*n_npz*n_npv*ipm + n_npw*n_npz*n_npv*n_npm*ips
+          write(crank, fmt="(i6.6)") ir
+          write(cnum, fmt="(i3.3)" ) loop
+
+          ! case of extends 's'
+          if ( ips >= nprocs ) then
+             nff(:, :, :, :, :) = (0.0, 0.0)
+
+             ! open FortranI/O file
+             open(unit=cntfos, &
+                  file=trim(odir)//"/gkvp."//crank//".cnt."//cnum, &
+                  form="unformatted")
+
+             ! write into FortranI/O file
+             rewind cntfos
+             write(unit=cntfos) time, nff
+
+             ! close the file
+             call flush(cntfos)
+             close(cntfos)
+
+             cycle
+          end if
+
           ! new index range in global
           igx0 = -n_nx; igx1 = n_nx
           igy0 = ipw*(n_ny+1); igy1 = min(igy0+n_ny, n_gy)
@@ -265,35 +291,44 @@ CONTAINS
                 do igz = igz0, igz1
                    zz = z0 + (igz-igz0)*n_dz
                    do igy = igy0, igy1
+                      ! case of extends 'y'
+                      if ( igy > global_nz ) then
+                         do igx = igx0, igx1
+                            nff(igx-igx0+1, igy-igy0+1, igz-igz0+1, &
+                                 igv-igv0+1, igm-igm0+1) = (0.0, 0.0)
+                         end do
+                         cycle
+                      end if
                       yy = real(igy)
                       do igx = igx0, igx1
-                         xx = real(igx)
-                         call intp5d%interpolate(xx, yy, zz, vv, mm, f)
+                         ! case of extends 'x'
+                         if ( igx < -nx .or. igx > nx ) then
+                            f = (0.0, 0.0)
+                         else
+                            xx = real(igx)
+                            call intp5d%interpolate(xx, yy, zz, vv, mm, f)
+                         end if
                          nff(igx-igx0+1, igy-igy0+1, igz-igz0+1, &
                               igv-igv0+1, igm-igm0+1) = f
                       end do
                    end do
                 end do
 
-                ! open FortranI/O file
-                ir = ipw + n_npw*ipz + n_npw*n_npz*ipv &
-                     + n_npw*n_npz*n_npv*ipm + n_npw*n_npz*n_npv*n_npm*ips
-                write(crank, fmt="(i6.6)") ir
-                write(cnum, fmt="(i3.3)" ) loop
-                open(unit=cntfos, &
-                     file=trim(odir)//"/gkvp."//crank//".cnt."//cnum, &
-                     form="unformatted")
-
-                ! write into FortranI/O file
-                rewind cntfos
-                write(unit=cntfos) time, nff
-
-                ! close the file
-                call flush(cntfos)
-                close(cntfos)
-
              end do ! igv
           end do ! igm
+
+          ! open FortranI/O file
+          open(unit=cntfos, &
+               file=trim(odir)//"/gkvp."//crank//".cnt."//cnum, &
+               form="unformatted")
+
+          ! write into FortranI/O file
+          rewind cntfos
+          write(unit=cntfos) time, nff
+
+          ! close the file
+          call flush(cntfos)
+          close(cntfos)
 
        end do ! ipw
        end do ! ipz
