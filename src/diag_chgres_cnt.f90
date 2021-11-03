@@ -219,6 +219,8 @@ CONTAINS
        do ipv = 0, n_npv-1
        do ipz = 0, n_npz-1
        do ipw = 0, n_npw-1
+          nff(:, :, :, :, :) = (0.0, 0.0)
+
           ! setup rank and loop number string
           ir = ipw + n_npw*ipz + n_npw*n_npz*ipv &
                + n_npw*n_npz*n_npv*ipm + n_npw*n_npz*n_npv*n_npm*ips
@@ -227,8 +229,6 @@ CONTAINS
 
           ! case of extends 's'
           if ( ips >= nprocs ) then
-             nff(:, :, :, :, :) = (0.0, 0.0)
-
              ! open FortranI/O file
              open(unit=cntfos, &
                   file=trim(odir)//"/gkvp."//crank//".cnt."//cnum, &
