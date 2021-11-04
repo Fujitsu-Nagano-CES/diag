@@ -37,7 +37,8 @@ PROGRAM diag
 
     
 !--- Change resolution ---
-    nnx = nx
+!   nnx = nx
+    nnx = nx*2
     ngy = global_ny
     ngz = global_nz
     ngv = global_nv
