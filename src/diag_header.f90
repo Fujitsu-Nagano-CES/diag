@@ -19,7 +19,7 @@ MODULE diag_header
 
 !%%% DIAG parameters %%%
   integer, parameter :: snum = 1      ! begining of simulation runs
-  integer, parameter :: enum = 1      ! end of simulation runs
+  integer, parameter :: enum = 4      ! end of simulation runs
 !%%%%%%%%%%%%%%%%%%%%%%
 
 !%%% GKV parameters %%%

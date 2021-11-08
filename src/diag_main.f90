@@ -37,10 +37,12 @@ PROGRAM diag
 
     
 !--- Change resolution ---
-!   nnx = nx
-    nnx = nx*2
+    nnx = nx
     ngy = global_ny
-    ngz = global_nz
+    !ngz = global_nz
+    !ngv = global_nv
+    !ngm = global_nm
+    ngz = 10
     ngv = global_nv
     ngm = global_nm
     nnpw= nprocw
@@ -49,7 +51,9 @@ PROGRAM diag
     nnpm= nprocm
     nnps= nprocs
     
-    call chgres_cnt_fortran(nnx=nnx, ngy=ngy, ngz=ngz, ngv=ngv, ngm=ngm, &
+    !call chgres_cnt_fortran(nnx=nnx, ngy=ngy, ngz=ngz, ngv=ngv, ngm=ngm, &
+    !    nnpw=nnpw, nnpz=nnpz, nnpv=nnpv, nnpm=nnpm, nnps=nnps)
+    call chgres_cnt_netcdf(nnx=nnx, ngy=ngy, ngz=ngz, ngv=ngv, ngm=ngm, &
         nnpw=nnpw, nnpz=nnpz, nnpv=nnpv, nnpm=nnpm, nnps=nnps)
 !------------------
                                                         call clock_end(10)

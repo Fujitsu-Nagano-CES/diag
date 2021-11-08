@@ -3,6 +3,11 @@ import matplotlib.pyplot as plt
 import sys, os, glob
 from read_fort_cnt import read_fort_cnt
 
+nx, ny, nz, nv, nm = (6, 3, 4, 6, 3)
+npy, npz, npv, npm, nps = (2, 2, 2, 2, 2)
+dir = '../cnt'
+
+
 def join_fort_cnt(dir,  nx, ny, nz, nv, nm,  npy, npz, npv, npm, nps):
     path_lst = glob.glob(os.path.join(dir, '*'))
     file_lst = [os.path.basename(x) for x in path_lst]
@@ -20,6 +25,7 @@ def join_fort_cnt(dir,  nx, ny, nz, nv, nm,  npy, npz, npv, npm, nps):
     if n_proc != len(last_stp_files):
         print('Error: invalid process num.')
         return
+    print('the last step is {}'.format(stp_lst[-1]))
 
     # check box size
     gny, gnz, gnv, gnm = (ny*npy, nz*npz, nv*npv, nm*(npm+1)-1)
@@ -46,9 +52,8 @@ def join_fort_cnt(dir,  nx, ny, nz, nv, nm,  npy, npz, npv, npm, nps):
                              2*nz*ipz:2*nz*(ipz+1),
                              2*nv*ipv:2*nv*(ipv+1),
                              (nm+1)*ipm:(nm+1)*(ipm+1)] = pcnt[:,:yedl,:,:,:]
-                        #print("ipy={}, ipz={}, ipv={}, ipm={} has set.".format(
-                        #    ipy, ipz, ipv, ipm))
                         irank = irank + 1
+
         # plot real part
         fig, axes = plt.subplots(nrows=4, ncols=4, sharex=False)
         # row#0
@@ -99,5 +104,26 @@ def join_fort_cnt(dir,  nx, ny, nz, nv, nm,  npy, npz, npv, npm, nps):
         fig.tight_layout()
         plt.show()
     
+if __name__ == '__main__':
+    import argparse
+    parser = argparse.ArgumentParser(description='join gkvp cnt fort files')
+    parser.add_argument('-d', type=str, default='../cnt')
+    parser.add_argument('--nx', type=int, default=6)
+    parser.add_argument('--ny', type=int, default=3)
+    parser.add_argument('--nz', type=int, default=4)
+    parser.add_argument('--nv', type=int, default=6)
+    parser.add_argument('--nm', type=int, default=3)
+    args = parser.parse_args()
 
-join_fort_cnt("../run/chgres_cnt", 12,3,4,6,3, 2,2,2,2,2)
+    if args.d: dir = args.d
+    if args.nx: nx = args.nx
+    if args.ny: ny = args.ny
+    if args.nz: nz = args.nz
+    if args.nv: nv = args.nv
+    if args.nm: nm = args.nm
+    
+    print('chek {}'.format(dir))
+    join_fort_cnt(dir, nx, ny, nz, nv, nm, npy, npz, npv, npm, nps)
+    sys.exit(0)
+    
+    
