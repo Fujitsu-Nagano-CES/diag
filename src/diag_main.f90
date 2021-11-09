@@ -39,10 +39,10 @@ PROGRAM diag
 !--- Change resolution ---
     nnx = nx
     ngy = global_ny
-    !ngz = global_nz
+    ngz = global_nz
     !ngv = global_nv
     !ngm = global_nm
-    ngz = 10
+    !ngz = 10
     ngv = global_nv
     ngm = global_nm
     nnpw= nprocw

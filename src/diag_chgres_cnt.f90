@@ -461,7 +461,7 @@ CONTAINS
     end do
     allocate( cml(n_gm+1) )
     do igm = 0, n_gm
-       cml(igm + 1) = n_dm * real(igm, kind=DP)
+       cml(igm + 1) = 0.5 * (n_dm * real(igm, kind=DP))**2
     end do
 
     ! setup interpolator with original mesh
@@ -641,9 +641,11 @@ CONTAINS
 
           ! set values onto netCDF
           ierr_nf90 = nf90_put_var(ncid=ncid, varid=varid_recnt, &
-               values=dble(nff), start=start_cnt, count=count_cnt)
+               values=dble(nff(:,1:count_cnt(2),:,:,:)), &
+               start=start_cnt, count=count_cnt)
           ierr_nf90 = nf90_put_var(ncid=ncid, varid=varid_imcnt, &
-               values=aimag(nff), start=start_cnt, count=count_cnt)
+               values=aimag(nff(:,1:count_cnt(2),:,:,:)), &
+               start=start_cnt, count=count_cnt)
           call check_nf90err(ierr_nf90, "nf90_putvar")
 
        end do ! ipw
