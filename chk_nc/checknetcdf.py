@@ -17,4 +17,7 @@ cnt1r = cnt1['recnt'][0]
 cnt2r = cnt2['recnt'][0]
 cnt_rd = cnt1r - cnt2r
 print('diff real min=%g, max=%g' %(cnt_rd.min(), cnt_rd.max()))
-#print('diff imag min=%g, max=%g' %(cnt_id.min(), cnt_id.max()))
+cnt1i = cnt1['imcnt'][0]
+cnt2i = cnt2['imcnt'][0]
+cnt_id = cnt1i - cnt2i
+print('diff imag min=%g, max=%g' %(cnt_id.min(), cnt_id.max()))

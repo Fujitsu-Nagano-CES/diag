@@ -12,7 +12,7 @@ nrank = 32
 file_lst = ['gkvp.%06d.cnt.004' % r for r in range(nrank)]
 
 dir1='../cnt/'
-dir2='../run/chgres_cnt_fort/'
+dir2='../run/chgres_cnt/'
 
 for file in file_lst:
     print('check ' + file)

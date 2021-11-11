@@ -66,7 +66,7 @@ diag:	${SRC}/diag_header.f90\
 	${SRC}/out_fluidtotaltrans.f90\
 	${SRC}/out_fluidsubsptrans.f90\
 	${SRC}/out_fluiddetailtrans.f90\
-	${SRC}/diag_interp.f90\
+	${SRC}/diag_chgres_util.f90\
 	${SRC}/diag_chgres_cnt.f90\
 	${SRC}/diag_main.f90
 
@@ -107,7 +107,7 @@ diag:	${SRC}/diag_header.f90\
 	${FC} ${FFLAGS} -c ${SRC}/out_fluidtotaltrans.f90
 #	${FC} ${FFLAGS} -c ${SRC}/out_fluidsubsptrans.f90
 	${FC} ${FFLAGS} -c ${SRC}/out_fluiddetailtrans.f90
-	${FC} ${FFLAGS} -c ${SRC}/diag_interp.f90 ${INC}
+	${FC} ${FFLAGS} -c ${SRC}/diag_chgres_util.f90 ${INC}
 	${FC} ${FFLAGS} -c ${SRC}/diag_chgres_cnt.f90 ${INC}
 	${FC} ${FFLAGS} -c ${SRC}/diag_main.f90
 

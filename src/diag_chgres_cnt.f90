@@ -10,6 +10,7 @@ MODULE diag_chgres_cnt
        loop_cnt_sta, loop_cnt_end
   use diag_geom, only : lz, vmax, mmax, dz, dv, dm, kxmin, kymin
   use diag_interp
+  use diag_cache_cnt
   use netcdf
   implicit none
 
@@ -227,6 +228,10 @@ CONTAINS
        call rb_cnt_gettime(loop, time)
        
        do ips = 0, n_nps-1
+          
+       ! initialize buffer cache
+       call initialize_cache(ips, loop, 2*n_nv *3)
+          
        do ipm = 0, n_npm-1
        do ipv = 0, n_npv-1
        do ipz = 0, n_npz-1
@@ -253,7 +258,6 @@ CONTAINS
              ! close the file
              call flush(cntfos)
              close(cntfos)
-
              cycle
           end if
 
@@ -280,16 +284,16 @@ CONTAINS
 
                 ! get off(:, :, :, 1:2, 1:2) around (v, m)
                 ! (v, m) = (1, 1)
-                call rb_cnt_ivimisloop(oiv(1), oim(1), ips, loop, woff)
+                call get_blk(oiv(1), oim(1), woff)
                 off(:, :, :, 1, 1) = woff
                 ! (v, m) = (2, 1)
-                call rb_cnt_ivimisloop(oiv(2), oim(1), ips, loop, woff)
+                call get_blk(oiv(2), oim(1), woff)
                 off(:, :, :, 2, 1) = woff
                 ! (v, m) = (1, 2)
-                call rb_cnt_ivimisloop(oiv(1), oim(2), ips, loop, woff)
+                call get_blk(oiv(1), oim(2), woff)
                 off(:, :, :, 1, 2) = woff
                 ! (v, m) = (2, 2)
-                call rb_cnt_ivimisloop(oiv(2), oim(2), ips, loop, woff)
+                call get_blk(oiv(2), oim(2), woff)
                 off(:, :, :, 2, 2) = woff
 
                 ! setup interpolator
@@ -350,8 +354,9 @@ CONTAINS
 
     end do ! loop
 
-    ! finalize interpolator
-    call intp5d%finalize()
+    ! finalize
+    call intp5d%finalize
+    call finalize_cache
 
     ! dealocate array
     deallocate(nff)
@@ -543,6 +548,10 @@ CONTAINS
        call check_nf90err(ierr_nf90, "nf90_putvar")
        
        do ips = 0, n_nps-1
+          
+       ! initialize buffer cache
+       call initialize_cache(ips, loop, 2*n_nv *3)
+
        do ipm = 0, n_npm-1
        do ipv = 0, n_npv-1
        do ipz = 0, n_npz-1
@@ -590,16 +599,16 @@ CONTAINS
 
                 ! get off(:, :, :, 1:2, 1:2) around (v, m)
                 ! (v, m) = (1, 1)
-                call rb_cnt_ivimisloop(oiv(1), oim(1), ips, loop, woff)
+                call get_blk(oiv(1), oim(1), woff)
                 off(:, :, :, 1, 1) = woff
                 ! (v, m) = (2, 1)
-                call rb_cnt_ivimisloop(oiv(2), oim(1), ips, loop, woff)
+                call get_blk(oiv(2), oim(1), woff)
                 off(:, :, :, 2, 1) = woff
                 ! (v, m) = (1, 2)
-                call rb_cnt_ivimisloop(oiv(1), oim(2), ips, loop, woff)
+                call get_blk(oiv(1), oim(2), woff)
                 off(:, :, :, 1, 2) = woff
                 ! (v, m) = (2, 2)
-                call rb_cnt_ivimisloop(oiv(2), oim(2), ips, loop, woff)
+                call get_blk(oiv(2), oim(2), woff)
                 off(:, :, :, 2, 2) = woff
 
                 ! setup interpolator
@@ -650,8 +659,7 @@ CONTAINS
 
        end do ! ipw
        end do ! ipz
-
-    end do ! ipv
+       end do ! ipv
        end do ! ipm
        end do ! ips
 
@@ -661,8 +669,9 @@ CONTAINS
     ierr_nf90 = nf90_close(ncid)
     call check_nf90err(ierr_nf90, "nf90_close")
     
-    ! finalize interpolator
+    ! finalize
     call intp5d%finalize()
+    call finalize_cache
 
     ! dealocate arrays
     deallocate(nff)
