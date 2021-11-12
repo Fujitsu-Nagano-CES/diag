@@ -395,6 +395,7 @@ CONTAINS
     do i = 1, num_blk
        if ( cnt_lst(i)%idx == idx ) then ! cache hit
           p = cnt_lst(i)%pd
+          cnt_lst(i)%age = 1
           found = .true.
        else if ( cnt_lst(i)%age > 0 ) then
           cnt_lst(i)%age = cnt_lst(i)%age + 1
