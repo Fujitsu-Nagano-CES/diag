@@ -108,11 +108,16 @@ if __name__ == '__main__':
     import argparse
     parser = argparse.ArgumentParser(description='join gkvp cnt fort files')
     parser.add_argument('-d', type=str, default='../cnt')
-    parser.add_argument('--nx', type=int, default=6)
-    parser.add_argument('--ny', type=int, default=3)
-    parser.add_argument('--nz', type=int, default=4)
-    parser.add_argument('--nv', type=int, default=6)
-    parser.add_argument('--nm', type=int, default=3)
+    parser.add_argument('--nx', type=int, default=nx)
+    parser.add_argument('--ny', type=int, default=ny)
+    parser.add_argument('--nz', type=int, default=nz)
+    parser.add_argument('--nv', type=int, default=nv)
+    parser.add_argument('--nm', type=int, default=nm)
+    parser.add_argument('--npy', type=int, default=npy)
+    parser.add_argument('--npz', type=int, default=npz)
+    parser.add_argument('--npv', type=int, default=npv)
+    parser.add_argument('--npm', type=int, default=npm)
+    parser.add_argument('--nps', type=int, default=nps)
     args = parser.parse_args()
 
     if args.d: dir = args.d
@@ -121,6 +126,11 @@ if __name__ == '__main__':
     if args.nz: nz = args.nz
     if args.nv: nv = args.nv
     if args.nm: nm = args.nm
+    if args.ny: npy = args.npy
+    if args.nz: npz = args.npz
+    if args.nv: npv = args.npv
+    if args.nm: npm = args.npm
+    if args.nm: nps = args.nps
     
     print('chek {}'.format(dir))
     join_fort_cnt(dir, nx, ny, nz, nv, nm, npy, npz, npv, npm, nps)
